@@ -1,4 +1,4 @@
-pushl 24 ; Compute the 24th Fibonacci number
+pushl 9 ; Compute the 9th Fibonacci number
 
 neg     ; We count up from -n to 0 rather than down from n to 0
 
@@ -27,10 +27,9 @@ dup     ; copy the counter               5 8 -2 -2|
 save    ; push the copy back onto the stash 5 8 -2|-2
 
 sign    ; has the counter reached zero?         -1|-2
-pushl 9 ; if so, prepare to jump 8 bytes back -1 8|-2
+pushl 8 ; if so, prepare to jump 8 bytes back   -1|-2
 mul     ; multiply our offset by the sign       -8|-2
-dup
-disc
+
 skip    ; actually jump now and ...          -8 13|-2
 disc    ; discard the return address            -8|-2  ; branch delay slot
 
