@@ -1,0 +1,92 @@
+tinystack: a stack-based microcode
+
+Tinystack's distinguishing feature is its short instruction length - 4 bits.
+Tinystack's memory is arranged as 32768 words of 2 bytes each. By packing 4
+instructions per word, it's possible to spend only one of every four cycles
+fetching instructions from memory. The first three instructions of each word
+may load values from or store values in memory, but the fourth is reserved
+for fetching the next set of instructions.
+
+Tinystack is big-endian - the nibbles 4 5 b f represent the number 0x45bf
+
+0x558                0x559
+| ---  one byte  -- || ---  one byte  -- |
++----+----+----+----++----+----+----+----+
+|    Q1   |    Q2   ||    Q3   |    Q4   |
++----+----+----+----++----+----+----+----+
+| ------------- one word --------------- |
+
+Tinystack contains two stacks, the second of which is called the stash.
+The stash can hold general-purpose data but arithmetic can only be performed
+on the top two elements of the stack. Data can be moved between the stack and
+the stash with the save and rstor instructions.
+
+By convention, the top of the stack and the element below it are sometimes
+referred to as x and y respectively.
+
+Stack manipulation instructions:
+
+    swap    - swap the top two stack elements    1 2 -> 2 1
+    dup     - duplicate the top stack element:   1 2 -> 1 2 2
+    disc    - discard the top stack element      1 2 -> 1
+    save    - remove the top stack element and push it onto the stash
+    rstor   - remove the top stash element and push it onto the stack
+    pushl   - push literal nibble
+
+              Sequential pushl's build up a constant at the top of the stack
+              nibble by nibble, from least significant to most significant.
+              A command that isn't a pushl interrupts this, and when four
+              nibbles have been pushed, the next call to pushl will start the
+              sequence again.
+
+              pushl 3 -> 0x0003                  pushl 5 -> 0x0005
+              pushl 5 -> 0x0053                  pushl 6 -> 0x0065
+              dup     -> 0x0053 0x0053           pushl 4 -> 0x0465
+              pushl 2 -> 0x0053 0x0053 0x0002    pushl 2 -> 0x2465
+              pushl 0 -> 0x0053 0x0053 0x0002    pushl 7 -> 0x2465 0x0007
+
+Arithmetic instructions:
+
+    add     - add the top two stack elements and leave the result on the stack
+              4 5 -> 9           65500 100 -> 64    (mod 2^16)
+    mul     - multiply the top two stack elements and leave the result there
+              4 5 -> 20          65500 100 -> 61936 (mod 2^16)
+    xor     - bitwise-xor the top two stack elements and leave the result there
+              4 5 -> 1           65500 100 -> 65464
+    and, or - behavior can be deduced from name
+    neg     - replace the top of the stack with its additive inverse mod 2^16
+              6 -> 65530             65529 -> 7
+    sign    - replace the top of the stack with:
+                  0xFFFF == 65535 if the sign bit of x is set (x & 0x8000)
+                  0 otherwise
+
+Memory instructions:
+
+        There are some details about how these handle writing to byte addresses
+        despite memory arranged in words, but they will be written up later.
+
+        Memory operations cannot occur as the last instruction of a word.
+
+    ld      - acts like "x = *x". Replaces the top value with the value at the
+              address to which it points.
+    st      - acts like "*x = y; x += 2". Stores the second value at the
+              address pointed to by the top of the stack. Then, adds 2 to
+              the value at the top of the stack.
+
+Control flow:
+    skip    - pop an offset from the top of the stack and jump forward by
+              that many bytes. Then, push the current instruction address
+              plus 1 onto the stack. A skip instruction cannot occur in the
+              last instruction of a word.
+
+              After a skip instruction is executed, the instruction following
+              it will also be executed. Then program flow will continue
+              where requested.
+
+              If the top of the stack is zero, this has no effect (apart from
+              discarding the top value)
+
+And that's it. This is definitely Turing-complete but organizing useful
+programs requires careful attention to the layout of the stack and stash.
+A sample program to compute the Fibonacci sequence is included as fib.s, and
+its assembled version is included as fib.tsb.
