@@ -1,3 +1,7 @@
+#!/usr/bin/python2
+
+# Disassembler for Tinystack
+
 from argparse import ArgumentParser, FileType
 from sys import stdin
 

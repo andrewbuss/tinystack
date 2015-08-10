@@ -57,7 +57,7 @@ Arithmetic instructions:
     neg     - replace the top of the stack with its additive inverse mod 2^16
               6 -> 65530             65529 -> 7
     sign    - replace the top of the stack with:
-                  0xFFFF == 65535 if the sign bit of x is set (x & 0x8000)
+                  0xFFFF == 65535 == -1 if the sign bit of x is set (x & 0x8000)
                   0 otherwise
 
 Memory instructions:
@@ -90,3 +90,9 @@ And that's it. This is definitely Turing-complete but organizing useful
 programs requires careful attention to the layout of the stack and stash.
 A sample program to compute the Fibonacci sequence is included as fib.s, and
 its assembled version is included as fib.tsb.
+
+Run this with:
+
+    ./uasm.py fib.s | ./tinystack_emu.py
+
+A disassembler is also included: udisasm.py
