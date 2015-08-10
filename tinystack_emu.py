@@ -19,7 +19,6 @@ def instruction(opcode):
         by_opcode[opcode] = call_instr
         by_name[call_instr.__name__] = call_instr
         return call_instr
-
     return instruction_
 
 
@@ -162,7 +161,7 @@ class Tinystack(object):
     def step_until(self, end_addr):
         while self.ip < end_addr:
             self.step_once()
-            if self.new_ip:
+            if self.new_ip is not None:
                 # We cannot skip in the last quarter of a word
                 assert self.half or (self.ip & 1)
                 self.step_once()

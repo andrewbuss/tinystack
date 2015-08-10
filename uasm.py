@@ -19,6 +19,10 @@ nibbles = []
 for line in args.infile:
     line = line.strip().split(' ')
     if line == ['']: continue
+    if line[0] == 'align':
+        if len(nibbles) & 1:
+            nibbles.append(0xE)
+        continue
     if line[0][0] == ';': continue
     opcode = tinystack_emu.by_name[line[0]].opcode
     if line[0] == 'pushl':
