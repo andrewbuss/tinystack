@@ -11,19 +11,19 @@ parser = ArgumentParser()
 parser.add_argument('infile', nargs='?', type=FileType('r'), default=stdin)
 args = parser.parse_args()
 
-pushl = False
+lit = False
 
 def print_nibble(n):
-    global pushl
+    global lit
     print hex(n)[2:], '\t',
-    if pushl:
-        pushl = False
+    if lit:
+        lit = False
         print
         return
     instr = by_opcode[n]
     print instr.__name__
-    if instr.__name__ == 'pushl':
-        pushl = True
+    if instr.__name__ == 'lit':
+        lit = True
 
 
 

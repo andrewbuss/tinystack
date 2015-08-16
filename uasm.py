@@ -1,7 +1,7 @@
 #!/usr/bin/python2
 
 # Microassembler for Tinystack. This doesn't do much except map mnemonics to
-# nibbles and generate pushl instruction sequences.
+# nibbles and generate lit instruction sequences.
 
 import sys
 from argparse import ArgumentParser, FileType
@@ -18,20 +18,23 @@ args = parser.parse_args()
 nibbles = []
 for line in args.infile:
     line = line.strip().split(' ')
-    if line == ['']: continue
+    if line == ['']: continue       # ignore blank lines
+    if line[0][0] == ';': continue  # ignore lines which start with a comment
     if line[0] == 'align':
         if len(nibbles) & 1:
-            nibbles.append(0xE)
+            nibbles.append(0)
         continue
-    if line[0][0] == ';': continue
+    if line[0] == 'call':
+        if len(nibbles) & 3 == 3:   # add a nop if we're in the last nibble
+            nibbles.append(0)
     opcode = tinystack_emu.by_name[line[0]].opcode
-    if line[0] == 'pushl':
-        pushl = lambda x: nibbles.extend([opcode, x])
+    if line[0] == 'lit':
+        lit = lambda x: nibbles.extend([opcode, x])
         n = int(line[1]) & 0xffff
-        pushl(n & 0xF)
+        lit(n & 0xF)
         while n > 0xF:
             n >>= 4
-            pushl(n & 0xF)
+            lit(n & 0xF)
     else:
         nibbles.append(opcode)
 

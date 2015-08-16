@@ -9,6 +9,7 @@ from itertools import chain
 by_opcode = {}
 by_name = {}
 
+
 def instruction(opcode):
     def instruction_(f):
         def call_instr(cpu):
@@ -19,62 +20,77 @@ def instruction(opcode):
         by_opcode[opcode] = call_instr
         by_name[call_instr.__name__] = call_instr
         return call_instr
+
     return instruction_
 
 
 class Tinystack(object):
     @instruction(0x0)
+    def nop_instr(cpu):
+        "do nothing"
+
+    @instruction(0x1)
+    def nand_instr(cpu):
+        "bitwise AND x and y, store result in x"
+        cpu.stack.append(cpu.stack.pop() & cpu.stack.pop())
+
+    @instruction(0x2)
+    def neg_instr(cpu):
+        "x = -x"
+        cpu.stack.append((~cpu.stack.pop() + 1) & 0xffff)
+
+    @instruction(0x3)
+    def add_instr(cpu):
+        "add x and y, unsigned"
+        cpu.stack.append((cpu.stack.pop() + cpu.stack.pop()) & 0xffff)
+
+    @instruction(0x4)
+    def mul_instr(cpu):
+        "multiply x and y, unsigned"
+        cpu.stack.append((cpu.stack.pop() * cpu.stack.pop()) & 0xffff)
+
+    @instruction(0x5)
+    def sign_instr(cpu):
+        "fill x with x's high bit. That is, 0xa99f -> 0xffff, 0x4485 -> 0x0000"
+        cpu.stack.append(0xFFFF if cpu.stack.pop() & 0x8000 else 0)
+
+    @instruction(0x6)
     def swap_instr(cpu):
         "swap x and y"
         x, y = cpu.stack.pop(), cpu.stack.pop()
         cpu.stack.append(x), cpu.stack.append(y)
 
-    @instruction(0x1)
-    def and_instr(cpu):
-        "bitwise AND x and y, store result in x"
-        cpu.stack.append(cpu.stack.pop() & cpu.stack.pop())
-
-    @instruction(0x2)
-    def or_instr(cpu):
-        "bitwise OR x and y, store result in x"
-        cpu.stack.append(cpu.stack.pop() | cpu.stack.pop())
-
-    @instruction(0x3)
-    def xor_instr(cpu):
-        "bitwise XOR x and y"
-        cpu.stack.append(cpu.stack.pop() ^ cpu.stack.pop())
-
-    @instruction(0x4)
-    def add_instr(cpu):
-        "add x and y, unsigned"
-        cpu.stack.append((cpu.stack.pop() + cpu.stack.pop()) & 0xffff)
-
-    @instruction(0x5)
-    def mul_instr(cpu):
-        "multiply x and y, unsigned"
-        cpu.stack.append((cpu.stack.pop() * cpu.stack.pop()) & 0xffff)
-
-    @instruction(0x6)
+    @instruction(0x7)
     def save_instr(cpu):
         "pop a value from the stack and push it onto the stash"
         cpu.stash.append(cpu.stack.pop())
 
-    @instruction(0x7)
+    @instruction(0x8)
+    def rstor_instr(cpu):
+        "pop a value from the stash and push it onto the stack"
+        cpu.stack.append(cpu.stash.pop())
+
+    @instruction(0x9)
+    def dup_instr(cpu):
+        "duplicate the top of the stack"
+        cpu.stack.append(cpu.stack[-1])
+
+    @instruction(0xa)
     def disc_instr(cpu):
         "pop x and drop it on the floor"
         cpu.stack.pop()
 
-    @instruction(0x8)
-    def pushl_instr(cpu):
+    @instruction(0xb)
+    def lit_instr(cpu):
         "push a literal nibble"
-        if cpu.last_pushl != cpu.cycle_count - 1 or cpu.pushl_shift == 16:
-            cpu.pushl_shift = 0
-        if not cpu.pushl_shift:
+        if cpu.last_lit != cpu.cycle_count - 1 or cpu.lit_shift == 16:
+            cpu.lit_shift = 0
+        if not cpu.lit_shift:
             cpu.stack.append(0)
-        cpu.pushl_next = True
-        cpu.last_pushl = cpu.cycle_count
+        cpu.lit_next = True
+        cpu.last_lit = cpu.cycle_count
 
-    @instruction(0x9)
+    @instruction(0xc)
     def skip_instr(cpu):
         "IP += x; push old IP+1 onto the stack"
         offset = cpu.stack.pop()
@@ -82,17 +98,14 @@ class Tinystack(object):
         if not offset: return
         cpu.new_ip = (cpu.ip + 1 + offset) & 0xFFFF
 
-    @instruction(0xa)
-    def sign_instr(cpu):
-        "fill x with x's high bit. That is, 0xa99f -> 0xffff, 0x4485 -> 0x0000"
-        cpu.stack.append(0xFFFF if cpu.stack.pop() & 0x8000 else 0)
+    @instruction(0xd)
+    def call_instr(cpu):
+        "IP = x"
+        addr = cpu.stack.pop()
+        cpu.stack.append(cpu.ip + 1)
+        cpu.new_ip = addr
 
-    @instruction(0xb)
-    def neg_instr(cpu):
-        "x = -x"
-        cpu.stack.append((~cpu.stack.pop() + 1) & 0xffff)
-
-    @instruction(0xc)
+    @instruction(0xe)
     def ld_instr(cpu):
         "x = *x"
         x = cpu.stack.pop()
@@ -101,7 +114,7 @@ class Tinystack(object):
             value = (value << 8) | cpu.mem[x + 1]
         cpu.stack.append(value)
 
-    @instruction(0xd)
+    @instruction(0xf)
     def st_instr(cpu):
         "*x = y; x = (x+2)"
         x = cpu.stack.pop()
@@ -113,34 +126,24 @@ class Tinystack(object):
             cpu.mem[y + 1] = x & 0x00ff
         cpu.stack.append((y + 2) & (~1))
 
-    @instruction(0xe)
-    def dup_instr(cpu):
-        "duplicate the top of the stack"
-        cpu.stack.append(cpu.stack[-1])
-
-    @instruction(0xf)
-    def rstor_instr(cpu):
-        "pop a value from the stash and push it onto the stack"
-        cpu.stack.append(cpu.stash.pop())
-
     def __init__(self, memory):
         self.ip = 0
         self.cycle_count = 0
         self.mem = memory
         self.stack = []
         self.stash = []
-        self.last_pushl = -2
-        self.pushl_shift = 16
-        self.pushl_next = False
+        self.last_lit = -2
+        self.lit_shift = 16
+        self.lit_next = False
         self.new_ip = None
         self.half = 0
 
     def execute_instruction(self, instr):
         print self.ip,
-        if self.pushl_next:
-            self.stack[-1] |= (instr << self.pushl_shift)
-            self.pushl_next = False
-            self.pushl_shift += 4
+        if self.lit_next:
+            self.stack[-1] |= (instr << self.lit_shift)
+            self.lit_next = False
+            self.lit_shift += 4
             print '\t',
         else:
             instr = by_opcode[instr]

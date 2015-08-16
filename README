@@ -31,34 +31,27 @@ Stack manipulation instructions:
     disc    - discard the top stack element      1 2 -> 1
     save    - remove the top stack element and push it onto the stash
     rstor   - remove the top stash element and push it onto the stack
-    pushl   - push literal nibble
+    lit     - push literal nibble
 
-              Sequential pushl's build up a constant at the top of the stack
+              Sequential lits build up a constant at the top of the stack
               nibble by nibble, from least significant to most significant.
-              A command that isn't a pushl interrupts this, and when four
-              nibbles have been pushed, the next call to pushl will start the
+              A command that isn't a lit interrupts this, and when four
+              nibbles have been pushed, the next call to lit will start the
               sequence again.
 
-              pushl 3 -> 0x0003                  pushl 5 -> 0x0005
-              pushl 5 -> 0x0053                  pushl 6 -> 0x0065
-              dup     -> 0x0053 0x0053           pushl 4 -> 0x0465
-              pushl 2 -> 0x0053 0x0053 0x0002    pushl 2 -> 0x2465
-              pushl 0 -> 0x0053 0x0053 0x0002    pushl 7 -> 0x2465 0x0007
+              lit 3 -> 0x0003                  lit 5 -> 0x0005
+              lit 5 -> 0x0053                  lit 6 -> 0x0065
+              dup   -> 0x0053 0x0053           lit 4 -> 0x0465
+              lit 2 -> 0x0053 0x0053 0x0002    lit 2 -> 0x2465
+              lit 0 -> 0x0053 0x0053 0x0002    lit 7 -> 0x2465 0x0007
 
 Arithmetic instructions:
-
     add     - add the top two stack elements and leave the result on the stack
               4 5 -> 9           65500 100 -> 64    (mod 2^16)
     mul     - multiply the top two stack elements and leave the result there
               4 5 -> 20          65500 100 -> 61936 (mod 2^16)
-    xor     - bitwise-xor the top two stack elements and leave the result there
-              4 5 -> 1           65500 100 -> 65464
-    and, or - behavior can be deduced from name
-    neg     - replace the top of the stack with its additive inverse mod 2^16
-              6 -> 65530             65529 -> 7
-    sign    - replace the top of the stack with:
-                  0xFFFF == 65535 == -1 if the sign bit of x is set (x & 0x8000)
-                  0 otherwise
+    nand    - nand the top two stack elements and leave the result there
+              4 5 -> 65531       65500 100 -> 65467
 
 Memory instructions:
 
@@ -74,22 +67,28 @@ Memory instructions:
               the value at the top of the stack.
 
 Control flow:
-    skip    - pop an offset from the top of the stack and jump forward by
-              that many bytes. Then, push the current instruction address
-              plus 1 onto the stack. A skip instruction cannot occur in the
-              last instruction of a word.
 
-              After a skip instruction is executed, the instruction following
-              it will also be executed. Then program flow will continue
-              where requested.
+    nop     - do nothing
 
-              If the top of the stack is zero, this has no effect (apart from
-              discarding the top value)
+    call    - 1. pop an address from the top of the stack
+              2. push IP + 1 onto the stack
+              3. execute the next instruction normally
+              4. continue execution starting at the address popped earlier
+
+    skip    - 1. pop an offset from the top of the stack
+              2. execute the next instruction normally
+              3. continue execution starting at IP + 1 + offset
+
+              The skip instruction has no effect on flow when the top of
+              the stack is zero.
+
+    The behavior of a call or skip in the delay slot following another
+    call or skip is not defined.
 
 And that's it. This is definitely Turing-complete but organizing useful
 programs requires careful attention to the layout of the stack and stash.
 A sample program to compute the Fibonacci sequence is included as fib.s, and
-its assembled version is included as fib.tsb.
+its assembled output is included as fib.tsb.
 
 Run this with:
 
