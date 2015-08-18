@@ -52,6 +52,11 @@ Arithmetic instructions:
               1 2 -> 4           6 15 -> 3
     nand    - nand the top two stack elements and leave the result there
               4 5 -> 65531       65500 100 -> 65467
+    sign    - smear the high bit across the top of the stack. That is, if the
+              high bit is 1, the top of the stack will be 0xffff. Otherwise,
+              it will become 0x0000. This can be used to implement conditional
+              jumps
+
 
 Memory instructions:
 
