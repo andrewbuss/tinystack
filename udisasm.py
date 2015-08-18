@@ -5,7 +5,7 @@
 from argparse import ArgumentParser, FileType
 from sys import stdin
 
-from tinystack_emu import by_opcode, Tinystack
+from tinystack_emu import by_opcode
 
 parser = ArgumentParser()
 parser.add_argument('infile', nargs='?', type=FileType('r'), default=stdin)

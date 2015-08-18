@@ -1,0 +1,15 @@
+include macros.s
+
+0x4142
+0x8000
+st
+disc
+
+0x4300
+0x8002
+st
+disc
+
+0x8000
+0x8002
+include strcmp.s

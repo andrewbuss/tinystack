@@ -48,8 +48,8 @@ Stack manipulation instructions:
 Arithmetic instructions:
     add     - add the top two stack elements and leave the result on the stack
               4 5 -> 9           65500 100 -> 64    (mod 2^16)
-    mul     - multiply the top two stack elements and leave the result there
-              4 5 -> 20          65500 100 -> 61936 (mod 2^16)
+    rol     - rotate the bits of y by x places
+              1 2 -> 4           6 15 -> 3
     nand    - nand the top two stack elements and leave the result there
               4 5 -> 65531       65500 100 -> 65467
 
@@ -62,9 +62,9 @@ Memory instructions:
 
     ld      - acts like "x = *x". Replaces the top value with the value at the
               address to which it points.
-    st      - acts like "*x = y; x += 2". Stores the second value at the
-              address pointed to by the top of the stack. Then, adds 2 to
-              the value at the top of the stack.
+    st      - acts like "*x = y; x = y". Stores the second value at the
+              address pointed to by the top of the stack. Then discards
+              the top of the stack.
 
 Control flow:
 

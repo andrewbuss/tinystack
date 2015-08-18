@@ -45,9 +45,11 @@ class Tinystack(object):
         cpu.stack.append((cpu.stack.pop() + cpu.stack.pop()) & 0xffff)
 
     @instruction(0x4)
-    def mul_instr(cpu):
-        "multiply x and y, unsigned"
-        cpu.stack.append((cpu.stack.pop() * cpu.stack.pop()) & 0xffff)
+    def rol_instr(cpu):
+        "x = y >> x"
+        x = cpu.stack.pop()
+        y = cpu.stack.pop()
+        cpu.stack.append((x << y) | (x >> (16-y)))
 
     @instruction(0x5)
     def sign_instr(cpu):
@@ -120,11 +122,11 @@ class Tinystack(object):
         x = cpu.stack.pop()
         y = cpu.stack.pop()
         if y & 1:
-            cpu.mem[y] = x & 0xff
+            cpu.mem[x] = y & 0xff
         else:
-            cpu.mem[y] = x & 0xff00
-            cpu.mem[y + 1] = x & 0x00ff
-        cpu.stack.append((y + 2) & (~1))
+            cpu.mem[x] = (y & 0xff00) >> 8
+            cpu.mem[x + 1] = y & 0x00ff
+        cpu.stack.append(y)
 
     def __init__(self, memory):
         self.ip = 0
