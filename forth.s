@@ -12,4 +12,5 @@ disc
 
 0x8000
 0x8002
-include strcmp.s
+
+strcmp.s

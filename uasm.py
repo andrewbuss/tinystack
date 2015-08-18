@@ -46,6 +46,8 @@ def proc_line(line):
         align(nibbles)
     if first == 'include':
         return map(proc_line, open(line[1]))
+    if first[-2:] == '.s':
+        return map(proc_line, open(first))
     if first == 'defmacro':
         return macros.update({line[1]: line[2:]})
     try:

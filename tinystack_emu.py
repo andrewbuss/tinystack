@@ -31,8 +31,8 @@ class Tinystack(object):
 
     @instruction(0x1)
     def nand_instr(cpu):
-        "bitwise AND x and y, store result in x"
-        cpu.stack.append(cpu.stack.pop() & cpu.stack.pop())
+        "bitwise NAND x and y, store result in x"
+        cpu.stack.append((~(cpu.stack.pop() & cpu.stack.pop())) & 0xffff)
 
     @instruction(0x2)
     def neg_instr(cpu):
@@ -46,10 +46,10 @@ class Tinystack(object):
 
     @instruction(0x4)
     def rol_instr(cpu):
-        "x = y >> x"
-        x = cpu.stack.pop()
+        "x = y << x"
+        x = cpu.stack.pop() & 0xf
         y = cpu.stack.pop()
-        cpu.stack.append((x << y) | (x >> (16-y)))
+        cpu.stack.append(((y << x) | (y >> (16 - x))) & 0xffff)
 
     @instruction(0x5)
     def sign_instr(cpu):
@@ -152,7 +152,8 @@ class Tinystack(object):
             print '\t', instr.__name__,
             instr(self)
             self.cycle_count += 1
-        print '\t', ' '.join(map(str, chain(self.stack, '|', reversed(self.stash))))
+        h = lambda x: hex(x)[2:].rjust(4, '0')
+        print '\t', ' '.join(chain(map(h, self.stack), '|', map(h, reversed(self.stash))))
 
     def step_once(self):
         if self.half:
