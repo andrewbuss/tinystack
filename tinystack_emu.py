@@ -141,7 +141,8 @@ class Tinystack(object):
         self.half = 0
 
     def execute_instruction(self, instr):
-        print self.ip,
+        h = lambda x: hex(x)[2:].rjust(4, '0')
+        print h(self.ip),
         if self.lit_next:
             self.stack[-1] |= (instr << self.lit_shift)
             self.lit_next = False
@@ -152,7 +153,6 @@ class Tinystack(object):
             print '\t', instr.__name__,
             instr(self)
             self.cycle_count += 1
-        h = lambda x: hex(x)[2:].rjust(4, '0')
         print '\t', ' '.join(chain(map(h, self.stack), '|', map(h, reversed(self.stash))))
 
     def step_once(self):
